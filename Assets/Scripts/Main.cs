@@ -1,27 +1,29 @@
-﻿using UnityEngine;
+﻿using System.Collections.Generic;
+using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 public class Main : MonoBehaviour 
 {
 	[SerializeField]
-	protected GameObject hero;
+	protected GameObject maskot;
+	[SerializeField]
+	protected List<Sprite> maskot_sprites;
 	[SerializeField]
 	protected GameObject chair;
 	[SerializeField]
-	protected GameObject duck;
+	protected Transform duckContainer;
 	[SerializeField]
-	protected GameObject end;
+	protected GameObject duck_pref;
 	[SerializeField]
-	protected GameObject restart;
+	protected GameObject end_bg;
 	[SerializeField]
-	protected Image emotions;
+	protected GameObject restartBtn;
 	[SerializeField]
 	protected Text timer;
-	[SerializeField]
-	protected Transform duckContainer;
 
 	public Text pointLabel;
+	public List<GameObject> lifes;
 
 	[HideInInspector]
 	public int points = 0;
@@ -43,7 +45,6 @@ public class Main : MonoBehaviour
 
 	private SpriteRenderer heroSprite;
 	private bool isFacingRight;
-	private bool duckIsFacingRight;
 	private bool pause = false;
 	private float centerX = 0;
 	private float centerY = -2.19F;
@@ -58,14 +59,13 @@ public class Main : MonoBehaviour
  {
 		instance = this;
         isFacingRight = false;
-        duckIsFacingRight = false;
         centerX = 0;
         centerY = -2.19F;
         chairX = chair.transform.position.x;
         chair.transform.position = new Vector3(chairX, -10, 0);
-        end.SetActive(false);
-        restart.SetActive(false);
-		heroSprite = hero.GetComponent<SpriteRenderer>();
+        end_bg.SetActive(false);
+        restartBtn.SetActive(false);
+		heroSprite = maskot.GetComponent<SpriteRenderer>();
     }
 
 	private void OnDestroy()
@@ -75,16 +75,16 @@ public class Main : MonoBehaviour
 
 	private void Update()
     {
-        if (restart.activeInHierarchy == false)
+        if (restartBtn.activeInHierarchy == false)
         {
             if (Input.GetKeyDown(KeyCode.E))
-                Go(PositionLevel.LeftUp);
+                Move(PositionLevel.LeftUp);
             else if (Input.GetKeyDown(KeyCode.R))
-                Go(PositionLevel.LeftDown);
+                Move(PositionLevel.LeftDown);
             else if (Input.GetKeyDown(KeyCode.U))
-                Go(PositionLevel.RightDown);
+                Move(PositionLevel.RightDown);
             else if (Input.GetKeyDown(KeyCode.I))
-                Go(PositionLevel.RigthUp);
+                Move(PositionLevel.RigthUp);
         }
     }
     private void FixedUpdate()
@@ -101,33 +101,7 @@ public class Main : MonoBehaviour
                 deltaTime += deltaPlus;
             }
 
-			Sprite emotSprite = null;
-            if (point == 10)
-				emotSprite = Resources.Load<Sprite>("emot4");
-            else if (point == 25)
-				emotSprite = Resources.Load<Sprite>("emot8");
-            else if (point == 50)
-				emotSprite = Resources.Load<Sprite>("emot1");
-            else if (point == 100)
-				emotSprite = Resources.Load<Sprite>("emot7");
-            else if (point == 150)
-				emotSprite = Resources.Load<Sprite>("emot2");
-            else if (point == 200)
-				emotSprite = Resources.Load<Sprite>("emot3");
-            else if (point == 250)
-				emotSprite = Resources.Load<Sprite>("emot5");
-            else if (point == 350)
-				emotSprite = Resources.Load<Sprite>("emot6");
-			emotions.sprite = emotSprite;
-
-            if (point > 49 && point < 100)
-                heroSprite.sprite = Resources.Load<Sprite>("olya6");
-            else if (point > 99 && point < 200)
-				heroSprite.sprite = Resources.Load<Sprite>("olya2");
-            else if (point > 199 && point < 350)
-				heroSprite.sprite = Resources.Load<Sprite>("olya3");
-            else if (point > 349)
-				heroSprite.sprite = Resources.Load<Sprite>("olya4");
+			HeroSpriteUpdate(point);
 
             if (lifeNum != 0)
             {
@@ -139,7 +113,7 @@ public class Main : MonoBehaviour
                 static_second = (int)second;
                 if (second % gen_time < 0.5 && gener_allow == 0)
                 {
-                    Generating();
+                    DuckGenerating();
                     gener_allow++;
                 }
                 else if (second % gen_time >= 0.5)
@@ -150,8 +124,8 @@ public class Main : MonoBehaviour
                 GameTime -= GameTime % 60;
                 double GameMinute = GameTime / 60;
                 GameTime = (GameMinute * 60) + GameSecond;
-                string str = "";
-                if (GameMinute < 10)
+				string str;
+				if (GameMinute < 10)
                     str = "0" + GameMinute + ":";
                 else
                     str = GameMinute + ":";
@@ -163,26 +137,24 @@ public class Main : MonoBehaviour
             }
             else
             {
-				heroSprite.sprite = Resources.Load<Sprite>("olya5");
-                end.SetActive(true);
-                restart.SetActive(true);
-                hero.transform.position = new Vector3(0, -2.19F, 0);
+				heroSprite.sprite = maskot_sprites[4];
+                end_bg.SetActive(true);
+                restartBtn.SetActive(true);
+                maskot.transform.position = new Vector3(0, -2.19F, 0);
                 chair.transform.position = new Vector3(chairX, -10F, 0);
             }
         }
     }
     private void Flip(GameObject obj)
     {
-        //if (obj.name == "Duck")
-        //    duckIsFacingRight = !duckIsFacingRight;
         Vector3 scale = obj.transform.localScale;
 		scale.x = isFacingRight ? -1 : 1;
         obj.transform.localScale = scale;
     }
 
-	public void Go(PositionLevel posLvl)
+	public void Move(PositionLevel posLvl)
 	{
-		if (restart.activeInHierarchy == false)
+		if (restartBtn.activeInHierarchy == false)
 		{
 			heroPosLevel = posLvl;
 			float transformX = 0.73F, transformY = 1.18F;
@@ -197,34 +169,34 @@ public class Main : MonoBehaviour
 			if (heroPosLevel == PositionLevel.RightDown || heroPosLevel == PositionLevel.RigthUp)
 			{
 				isFacingRight = true;
-				Flip(hero);
+				Flip(maskot);
 			}
 			else if (heroPosLevel == PositionLevel.LeftUp || heroPosLevel == PositionLevel.LeftDown)
 			{
 				isFacingRight = false;
 				transformX *= -1;
-				Flip(hero);
+				Flip(maskot);
 			}
-			hero.transform.position = new Vector3(centerX + transformX, centerY + transformY, hero.transform.position.z);
+			maskot.transform.position = new Vector3(centerX + transformX, centerY + transformY, maskot.transform.position.z);
 		}
 	}
 
-    private void Generating()
+    private void DuckGenerating()
     {
         int r = Random.Range(0, 4);//0-ru, 1-rd, 2-lu, 3-ld
         if (r == 0)
-            Instantiate(duck, new Vector3(5.15F, 0.2F, 0), Quaternion.identity, duckContainer);
+            Instantiate(duck_pref, new Vector3(5.15F, 0.2F, 0), Quaternion.identity, duckContainer);
         else if (r == 1)
-            Instantiate(duck, new Vector3(5.15F, -1.19F, 0), Quaternion.identity, duckContainer);
+            Instantiate(duck_pref, new Vector3(5.15F, -1.19F, 0), Quaternion.identity, duckContainer);
         else if (r == 2)
-            Instantiate(duck, new Vector3(-5.1F, 0.2F, 0), Quaternion.Euler(0, 180, 0), duckContainer);
+            Instantiate(duck_pref, new Vector3(-5.1F, 0.2F, 0), Quaternion.Euler(0, 180, 0), duckContainer);
         else if (r == 3)
-            Instantiate(duck, new Vector3(-5.1F, -1.19F, 0), Quaternion.Euler(0, 180, 0), duckContainer);
+            Instantiate(duck_pref, new Vector3(-5.1F, -1.19F, 0), Quaternion.Euler(0, 180, 0), duckContainer);
     }
     public void Restart()
     {
-        end.SetActive(false);
-        restart.SetActive(false);
+        end_bg.SetActive(false);
+        restartBtn.SetActive(false);
         Timer = 0;
         GameTime = 0;
         lifeNum = 3;
@@ -234,30 +206,41 @@ public class Main : MonoBehaviour
         static_second = 0;
 		points = 0;
 		pointLabel.text = points.ToString();
-        emotions.sprite = Resources.Load<Sprite>("shark");
-		heroSprite.sprite = Resources.Load<Sprite>("olya1");
-        for (int i = 1; i < 4; i++)
+		heroSprite.sprite = maskot_sprites[0];
+        for (int i = 0; i < 3; i++)
         {
-            GameObject life = GameObject.Find("life" + i);
-            life.transform.position = new Vector3(life.transform.position.x, 264, life.transform.position.z);
+			lifes[i].SetActive(true);
         }
     }
 
+	private void HeroSpriteUpdate(int point)
+	{
+		if (point > 49 && point < 100)
+			heroSprite.sprite = maskot_sprites[5];
+		else if (point > 99 && point < 200)
+			heroSprite.sprite = maskot_sprites[1];
+		else if (point > 199 && point < 350)
+			heroSprite.sprite = maskot_sprites[2];
+		else if (point > 349)
+			heroSprite.sprite = maskot_sprites[3];
+	}
+
+	#region Buttons
 	public void BtnLeftUp()
 	{
-		Go(PositionLevel.LeftUp);
+		Move(PositionLevel.LeftUp);
 	}
 	public void BtnLeftDown()
 	{
-		Go(PositionLevel.LeftDown);
+		Move(PositionLevel.LeftDown);
 	}
 	public void BtnRightUp()
 	{
-		Go(PositionLevel.RigthUp);
+		Move(PositionLevel.RigthUp);
 	}
 	public void BtnRightDown()
 	{
-		Go(PositionLevel.RightDown);
+		Move(PositionLevel.RightDown);
 	}
 
 	public void Pause()
@@ -272,4 +255,5 @@ public class Main : MonoBehaviour
         Restart();
         SceneManager.LoadScene("StartMenu");
     }
+	#endregion
 }

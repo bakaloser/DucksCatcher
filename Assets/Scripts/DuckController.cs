@@ -1,64 +1,77 @@
 ﻿using UnityEngine;
 using UnityEngine.UI;
 
-public class DuckController : MonoBehaviour {
-	private int time = 0;
-	private int thistime = 0;
-	private int direction = 0;
+public class DuckController : MonoBehaviour 
+{
+	[SerializeField]
+	protected Sprite die_sprite;
+
+	private int check_time = 0;
+	private int cur_time = 0;
+	private float move_time = 5;
+	private int step_num = 0;
+	private float startDownYPos = -1.19f; 
+	private float dieYPos = -3f;
+	private float x_add = 1.15F;
+	private float y_add = -0.03F;
 	private int rotationAngle = 60;
-	private float x = 1.15F;
-	private float y = -0.03F;
 	private Main.PositionLevel duckPosLevel;
+	private bool isRight => transform.position.x > 0;
 
 	private void Start ()
  {
-		if (transform.position.y <= -1.19)
+		if (transform.position.y <= startDownYPos)
 			duckPosLevel = Main.PositionLevel.Down;
 		else
 			duckPosLevel = Main.PositionLevel.Up;
 	}
 
-	// Update is called once per frame
 	private void Update()
 	{
 		if (Main.lifeNum == 0)
 			Destroy(gameObject);
+		else
+			MoveDuck();
+	}
 
-		thistime = Main.static_second;
-		if (time != thistime)
+	private void MoveDuck()
+	{ 
+		cur_time = Main.static_second;
+		if (check_time != cur_time)
 		{
-			time = thistime;
-			if (time % 5 != 0)
+			check_time = cur_time;
+			if (check_time % move_time != 0) //check time to move
 			{
-				if (direction > 0)
+				if (step_num > 0) 
 				{
-					x = 0.75F;
-					y = -0.15F;
+					x_add = 0.75F;
+					y_add = -0.15F;
 					rotationAngle = 90;
 				}
-				if (transform.position.x > 0)
-					x *= -1;
-				if (direction < 4)
+				if (isRight)
+					x_add *= -1;
+				if (step_num < 4)
 				{
-					transform.position = new Vector3(transform.position.x + x, transform.position.y + y, transform.position.z);
+					transform.position = new Vector3(transform.position.x + x_add, transform.position.y + y_add, transform.position.z);
 					transform.Rotate(new Vector3(0, 0, transform.position.z + rotationAngle));
 				}
 				else
 				{
 					if (Main.lifeNum > 0)
 					{
-						Destroy(gameObject);
-						GameObject life = GameObject.Find("life" + (4 - Main.lifeNum));
-						life.transform.position = new Vector3(life.transform.position.x, -150, life.transform.position.z);
+						GameObject life = Main.instance.lifes[3 - Main.lifeNum];
+						life.SetActive(false);
 						Main.lifeNum--;
+						Destroy(gameObject);
+						return;
 					}
 				}
-				direction++;
+				step_num++;
 			}
-			else if (direction == 4)
+			else if (step_num == 4)
 			{
-				transform.position = new Vector3(transform.position.x, -3, transform.position.y);
-				GetComponent<Image>().sprite = Resources.Load<Sprite>("die_duck");
+				transform.position = new Vector3(transform.position.x, dieYPos, transform.position.y);
+				GetComponent<Image>().sprite = die_sprite;
 			}
 		}
 	}
